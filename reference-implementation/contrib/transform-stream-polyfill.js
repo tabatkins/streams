@@ -12,8 +12,6 @@ if ('TransformStream' in self) {
 // Methods on the transform stream controller object
 
 function TransformStreamCloseReadable(transformStream) {
-  // console.log('TransformStreamCloseReadable()');
-
   if (transformStream._errored === true) {
     throw new TypeError('TransformStream is already errored');
   }
@@ -26,8 +24,6 @@ function TransformStreamCloseReadable(transformStream) {
 }
 
 function TransformStreamEnqueueToReadable(transformStream, chunk) {
-  // console.log('TransformStreamEnqueueToReadable()');
-
   if (transformStream._errored === true) {
     throw new TypeError('TransformStream is already errored');
   }
@@ -76,14 +72,7 @@ function TransformStreamError(transformStream, e) {
 // Abstract operations.
 
 function TransformStreamCloseReadableInternal(transformStream) {
-  assert(transformStream._errored === false);
-  assert(transformStream._readableClosed === false);
-
-  try {
-    ReadableStreamDefaultControllerClose(transformStream._readableController);
-  } catch (e) {
-    assert(false);
-  }
+  ReadableStreamDefaultControllerClose(transformStream._readableController);
 
   transformStream._readableClosed = true;
 }
@@ -95,10 +84,6 @@ function TransformStreamErrorIfNeeded(transformStream, e) {
 }
 
 function TransformStreamErrorInternal(transformStream, e) {
-  // console.log('TransformStreamErrorInternal()');
-
-  assert(transformStream._errored === false);
-
   transformStream._errored = true;
   transformStream._storedError = e;
 
@@ -113,24 +98,15 @@ function TransformStreamErrorInternal(transformStream, e) {
 // Used for preventing the next write() call on TransformStreamSink until there
 // is no longer backpressure.
 function TransformStreamReadableReadyPromise(transformStream) {
-  assert(transformStream._backpressureChangePromise !== undefined,
-         '_backpressureChangePromise should have been initialized');
-
   if (transformStream._backpressure === false) {
     return Promise.resolve();
   }
-
-  assert(transformStream._backpressure === true, '_backpressure should have been initialized');
 
   return transformStream._backpressureChangePromise;
 }
 
 function TransformStreamSetBackpressure(transformStream, backpressure) {
-  // console.log(`TransformStreamSetBackpressure(${backpressure})`);
-
   // Passes also when called during construction.
-  assert(transformStream._backpressure !== backpressure,
-         'TransformStreamSetBackpressure() should be called only when backpressure is changed');
 
   if (transformStream._backpressureChangePromise !== undefined) {
     // The fulfillment value is just for a sanity check.
@@ -142,8 +118,6 @@ function TransformStreamSetBackpressure(transformStream, backpressure) {
   });
 
   transformStream._backpressureChangePromise.then(resolution => {
-    assert(resolution !== backpressure,
-           '_backpressureChangePromise should be fulfilled only when backpressure is changed');
   });
 
   transformStream._backpressure = backpressure;
@@ -156,12 +130,6 @@ function TransformStreamDefaultTransform(chunk, transformStreamController) {
 }
 
 function TransformStreamTransform(transformStream, chunk) {
-  // console.log('TransformStreamTransform()');
-
-  assert(transformStream._errored === false);
-  assert(transformStream._transforming === false);
-  assert(transformStream._backpressure === false);
-
   transformStream._transforming = true;
 
   const transformer = transformStream._transformer;
@@ -221,8 +189,6 @@ class TransformStreamSink {
   }
 
   write(chunk) {
-    // console.log('TransformStreamSink.write()');
-
     const transformStream = this._transformStream;
 
     return TransformStreamTransform(transformStream, chunk);
@@ -235,11 +201,7 @@ class TransformStreamSink {
   }
 
   close() {
-    // console.log('TransformStreamSink.close()');
-
     const transformStream = this._transformStream;
-
-    assert(transformStream._transforming === false);
 
     transformStream._writableDone = true;
 
@@ -275,29 +237,18 @@ class TransformStreamSource {
     return this._startPromise.then(() => {
       // Prevent the first pull() call until there is backpressure.
 
-      assert(transformStream._backpressureChangePromise !== undefined,
-             '_backpressureChangePromise should have been initialized');
-
       if (transformStream._backpressure === true) {
         return Promise.resolve();
       }
-
-      assert(transformStream._backpressure === false, '_backpressure should have been initialized');
 
       return transformStream._backpressureChangePromise;
     });
   }
 
   pull() {
-    // console.log('TransformStreamSource.pull()');
-
     const transformStream = this._transformStream;
 
     // Invariant. Enforced by the promises returned by start() and pull().
-    assert(transformStream._backpressure === true, 'pull() should be never called while _backpressure is false');
-
-    assert(transformStream._backpressureChangePromise !== undefined,
-           '_backpressureChangePromise should have been initialized');
 
     TransformStreamSetBackpressure(transformStream, false);
 
@@ -398,9 +349,6 @@ class TransformStream {
 
     this._writable = new WritableStream(sink, writableStrategy);
 
-    assert(this._writableController !== undefined);
-    assert(this._readableController !== undefined);
-
     const desiredSize = ReadableStreamDefaultControllerGetDesiredSize(this._readableController);
     // Set _backpressure based on desiredSize. As there is no read() at this point, we can just interpret
     // desiredSize being non-positive as backpressure.
@@ -490,10 +438,6 @@ function Call(F, V, args) {
 }
 
 function InvokeOrNoop(O, P, args) {
-  assert(O !== undefined);
-  assert(IsPropertyKey(P));
-  assert(Array.isArray(args));
-
   const method = O[P];
   if (method === undefined) {
     return undefined;
@@ -503,9 +447,6 @@ function InvokeOrNoop(O, P, args) {
 };
 
 function PromiseInvokeOrNoop(O, P, args) {
-  assert(O !== undefined);
-  assert(IsPropertyKey(P));
-  assert(Array.isArray(args));
   try {
     return Promise.resolve(InvokeOrNoop(O, P, args));
   } catch (returnValueE) {
@@ -514,11 +455,6 @@ function PromiseInvokeOrNoop(O, P, args) {
 };
 
 function PromiseInvokeOrPerformFallback(O, P, args, F, argsF) {
-  assert(O !== undefined);
-  assert(IsPropertyKey(P));
-  assert(Array.isArray(args));
-  assert(Array.isArray(argsF));
-
   let method;
   try {
     method = O[P];
@@ -551,5 +487,4 @@ function assert(predicate, s) {
 }
 
 self['TransformStream'] = TransformStream;
-
 })();
